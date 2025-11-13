@@ -1,8 +1,9 @@
 import os
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
-from fastapi import FastAPI, HTTPException, Depends, Header
+from fastapi import FastAPI, HTTPException, Depends, Header, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr
 from bson import ObjectId
 import hashlib, secrets
@@ -19,6 +20,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Ensure uploads directory exists and mount static files to serve images
+UPLOAD_DIR = os.path.join(os.getcwd(), "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 # ----------------------- Utils -----------------------
 
@@ -206,7 +212,7 @@ def test_database():
     response["database_name"] = "✅ Set" if os.getenv("DATABASE_NAME") else "❌ Not Set"
     return response
 
-# Auth
+# -------- Auth --------
 @app.post("/auth/register", response_model=LoginResponse)
 def register(payload: RegisterInput):
     email_l = payload.email.lower().strip()
@@ -240,7 +246,7 @@ def login(payload: LoginInput):
     token = create_session(str(user["_id"]))
     return LoginResponse(token=token, name=user["name"], email=user["email"], is_admin=bool(user.get("is_admin", False)))
 
-# Games
+# -------- Games --------
 @app.get("/games")
 def list_games():
     games = list(db["game"].find({"is_active": True}).sort("created_at", -1))
@@ -281,7 +287,7 @@ def delete_game(game_id: str, user=Depends(admin_required)):
         raise HTTPException(status_code=404, detail="Game not found")
     return {"success": True}
 
-# Orders
+# -------- Orders --------
 @app.post("/orders")
 def create_order(payload: CreateOrderInput, authorization: Optional[str] = Header(None)):
     # Optional user
@@ -319,6 +325,21 @@ def update_order_status(order_id: str, payload: UpdateOrderStatus, user=Depends(
     if r.matched_count == 0:
         raise HTTPException(status_code=404, detail="Order not found")
     return {"success": True}
+
+# -------- Image Upload (Admin) --------
+@app.post("/admin/upload-image")
+async def upload_image(files: List[UploadFile] = File(...), user=Depends(admin_required)):
+    urls: List[str] = []
+    for f in files:
+        ext = os.path.splitext(f.filename)[1].lower()
+        if ext not in [".jpg", ".jpeg", ".png", ".gif", ".webp"]:
+            raise HTTPException(status_code=400, detail="Unsupported file type")
+        fname = f"{secrets.token_hex(16)}{ext}"
+        path = os.path.join(UPLOAD_DIR, fname)
+        with open(path, "wb") as out:
+            out.write(await f.read())
+        urls.append(f"/uploads/{fname}")
+    return {"urls": urls}
 
 if __name__ == "__main__":
     import uvicorn

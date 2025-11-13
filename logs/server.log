@@ -1,8 +1,24 @@
 INFO:     Will watch for changes in these directories: ['/home/workspace']
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-INFO:     Started reloader process [618] using StatReload
-INFO:     Started server process [620]
+INFO:     Started reloader process [796] using StatReload
+INFO:     Started server process [798]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 [ADMIN SEED] Ensured admin and reset password for replikaai512@gmail.com
-INFO:     172.20.0.1:41768 - "HEAD / HTTP/1.1" 405 Method Not Allowed
+INFO:     172.20.0.1:52276 - "HEAD / HTTP/1.1" 405 Method Not Allowed
+INFO:     172.20.0.1:35412 - "GET /games HTTP/1.1" 200 OK
+INFO:     172.20.0.1:35428 - "GET /games HTTP/1.1" 200 OK
+INFO:     172.20.0.1:35428 - "GET /games HTTP/1.1" 200 OK
+INFO:     172.20.0.1:35428 - "GET /games HTTP/1.1" 200 OK
+INFO:     172.20.0.1:34020 - "GET /games HTTP/1.1" 200 OK
+INFO:     172.20.0.1:34020 - "GET /games HTTP/1.1" 200 OK
+INFO:     172.20.0.1:34020 - "GET /games HTTP/1.1" 200 OK
+INFO:     172.20.0.1:34020 - "GET /games HTTP/1.1" 200 OK
+INFO:     172.20.0.1:34024 - "GET /games HTTP/1.1" 200 OK
+INFO:     172.20.0.1:34024 - "GET /games HTTP/1.1" 200 OK
+INFO:     172.20.0.1:34024 - "GET /games HTTP/1.1" 200 OK
+INFO:     172.20.0.1:34024 - "GET /games HTTP/1.1" 200 OK
+INFO:     172.20.0.1:51144 - "GET /games HTTP/1.1" 200 OK
+INFO:     172.20.0.1:51144 - "GET /games HTTP/1.1" 200 OK
+INFO:     172.20.0.1:51144 - "GET /games HTTP/1.1" 200 OK
+INFO:     172.20.0.1:51144 - "GET /games HTTP/1.1" 200 OK
