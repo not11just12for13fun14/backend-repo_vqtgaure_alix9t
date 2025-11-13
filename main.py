@@ -79,6 +79,38 @@ async def admin_required(user=Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Admin only")
     return user
 
+# ----------------------- Admin seeding -----------------------
+
+def seed_admin_if_needed(email: str, password: str):
+    try:
+        email_l = email.lower().strip()
+        existing = db["user"].find_one({"email": email_l})
+        if existing:
+            # Already exists, ensure admin flag true
+            if not bool(existing.get("is_admin", False)):
+                db["user"].update_one({"_id": existing["_id"]}, {"$set": {"is_admin": True, "updated_at": datetime.now(timezone.utc)}})
+            return False
+        # Create new admin user
+        user_doc = {
+            "name": "Administrator",
+            "email": email_l,
+            "hashed_password": hash_password(password),
+            "is_admin": True,
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
+        }
+        db["user"].insert_one(user_doc)
+        print(f"[ADMIN SEED] Created admin {email_l} with password: {password}")
+        return True
+    except Exception as e:
+        print(f"[ADMIN SEED ERROR] {e}")
+        return False
+
+# Seed the requested admin on startup
+SEED_ADMIN_EMAIL = os.getenv("SEED_ADMIN_EMAIL", "replikaai512@gmail.com")
+SEED_ADMIN_PASSWORD = os.getenv("SEED_ADMIN_PASSWORD", "RsGhor#2025")
+seed_admin_if_needed(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD)
+
 # ----------------------- Models -----------------------
 class RegisterInput(BaseModel):
     name: str
