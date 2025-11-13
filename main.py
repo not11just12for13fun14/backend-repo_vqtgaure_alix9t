@@ -79,11 +79,22 @@ async def admin_required(user=Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Admin only")
     return user
 
-# ----------------------- Admin seeding -----------------------
+# ----------------------- Indexes & Admin seeding -----------------------
+
+def ensure_user_indexes():
+    try:
+        # Unique by email and by lowercased name
+        db["user"].create_index("email", unique=True)
+        db["user"].create_index("name_lc", unique=True)
+    except Exception as e:
+        print(f"[INDEX] user indexes error: {e}")
+
 
 def seed_admin_if_needed(email: str, password: str):
     try:
         email_l = email.lower().strip()
+        name = "Administrator"
+        name_lc = name.lower()
         existing = db["user"].find_one({"email": email_l})
         if existing:
             # Already exists, ensure admin flag true
@@ -92,7 +103,8 @@ def seed_admin_if_needed(email: str, password: str):
             return False
         # Create new admin user
         user_doc = {
-            "name": "Administrator",
+            "name": name,
+            "name_lc": name_lc,
             "email": email_l,
             "hashed_password": hash_password(password),
             "is_admin": True,
@@ -106,9 +118,10 @@ def seed_admin_if_needed(email: str, password: str):
         print(f"[ADMIN SEED ERROR] {e}")
         return False
 
-# Seed the requested admin on startup
+# Ensure indexes, then seed the requested admin on startup
 SEED_ADMIN_EMAIL = os.getenv("SEED_ADMIN_EMAIL", "replikaai512@gmail.com")
 SEED_ADMIN_PASSWORD = os.getenv("SEED_ADMIN_PASSWORD", "RsGhor#2025")
+ensure_user_indexes()
 seed_admin_if_needed(SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD)
 
 # ----------------------- Models -----------------------
@@ -188,13 +201,20 @@ def test_database():
 # Auth
 @app.post("/auth/register", response_model=LoginResponse)
 def register(payload: RegisterInput):
-    existing = db["user"].find_one({"email": payload.email.lower()})
+    email_l = payload.email.lower().strip()
+    name_lc = payload.name.strip().lower()
+    existing = db["user"].find_one({"$or": [{"email": email_l}, {"name_lc": name_lc}]})
     if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        # Decide which field is duplicate to show friendly message
+        if existing.get("email") == email_l:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        else:
+            raise HTTPException(status_code=400, detail="Username already taken")
     hashed = hash_password(payload.password)
     user_doc = {
-        "name": payload.name,
-        "email": payload.email.lower(),
+        "name": payload.name.strip(),
+        "name_lc": name_lc,
+        "email": email_l,
         "hashed_password": hashed,
         "is_admin": False,
         "created_at": datetime.now(timezone.utc),
