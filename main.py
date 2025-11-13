@@ -97,9 +97,17 @@ def seed_admin_if_needed(email: str, password: str):
         name_lc = name.lower()
         existing = db["user"].find_one({"email": email_l})
         if existing:
-            # Already exists, ensure admin flag true
-            if not bool(existing.get("is_admin", False)):
-                db["user"].update_one({"_id": existing["_id"]}, {"$set": {"is_admin": True, "updated_at": datetime.now(timezone.utc)}})
+            # Ensure admin flag and reset password to the seeded one
+            db["user"].update_one(
+                {"_id": existing["_id"]},
+                {"$set": {
+                    "is_admin": True,
+                    "hashed_password": hash_password(password),
+                    "name_lc": existing.get("name_lc", existing.get("name", "").lower()),
+                    "updated_at": datetime.now(timezone.utc)
+                }}
+            )
+            print(f"[ADMIN SEED] Ensured admin and reset password for {email_l}")
             return False
         # Create new admin user
         user_doc = {
